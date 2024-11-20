@@ -7,7 +7,7 @@
 from flask import Flask, redirect, request, render_template, send_file
 import logging
 
-title = "TrustWind"
+title = "🌤️ | TrustWind"
 
 app = Flask(__name__, static_folder="./static")
 app.url_map.strict_slashes = False
