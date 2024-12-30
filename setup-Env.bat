@@ -1,7 +1,7 @@
 @echo off
 echo off
 
-set Directory_PythonEnv=.env
+set Directory_PythonEnv=.venv
 
 setlocal enableextensions enabledelayedexpansion
 
