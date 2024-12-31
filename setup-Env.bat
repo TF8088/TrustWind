@@ -11,4 +11,8 @@ python -m venv %Directory_PythonEnv%
 echo Activating the Python environment
 %Directory_PythonEnv%\Scripts\pip install Flask
 
+echo installing .environment
+%Directory_PythonEnv%\Scripts\pip install python-dotenv
+%Directory_PythonEnv%\Scripts\pip install requests
+
 pause
