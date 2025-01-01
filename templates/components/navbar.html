@@ -1,21 +1,30 @@
-<!-- NavBar Test -->
-<nav class="navbar is-fixed-top has-shadow">
-  <div class="navbar-brand">
-    <a class="navbar-item" href="#">
-      <strong>
-        <p id="title">{{ title }}</p>
-      </strong>
-    </a>
-  </div>
-
-  <div class="navbar-menu">
-    <div class="navbar-end">
-      <a class="navbar-item" href="#home">Home</a>
-      <a class="navbar-item" href="#about-us">About Us</a>
-      <a class="navbar-item" href="#documentation">Documentation</a>
-      <a class="navbar-item no-hover" href="/auth">
-        <button class="button is-link is-rounded">Login/Register</button>
-      </a>
+<!-- NavBar -->
+<header class="border-b bg-white">
+  <nav class="container mx-auto px-4 h-[73px] flex items-center justify-between">
+    <div class="font-bold text-xl">{{ title }}</div>
+    <div class="flex items-center gap-8">
+      <a href="/" class="hover:text-blue-600">Home</a>
+      <a href="/docs" class="hover:text-blue-600">Docs</a>
+      <a href="/about-us" class="hover:text-blue-600">About-Us</a>
+      <div class="relative">
+        <input type="text" id="city-search" placeholder="City Search" class="border rounded px-4 py-2">
+      </div>
+      <script>
+        const citySearchInput = document.getElementById('city-search');
+        citySearchInput.addEventListener('keydown', function(event) {
+          if (event.key === 'Enter') {
+            event.preventDefault(); 
+            const cityName = citySearchInput.value.trim(); 
+            if (cityName) {
+              window.location.href = `/city?city=${encodeURIComponent(cityName)}`;
+            } else {
+              
+            }
+          }
+        });
+      </script>
+      
+      <button class="border rounded px-4 py-2 hover:bg-gray-50">Login/Register</button>
     </div>
-  </div>
-</nav>
+  </nav>
+</header>
