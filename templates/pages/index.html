@@ -9,73 +9,44 @@
     <title>{{ title }}</title>
     <link rel="stylesheet" href="/static/js/script.js">
     <link rel="stylesheet" href="/static/css/style.css">
-    <link rel="stylesheet" href="/static/css/vendor/bulma.min.css">
+    <!-- <link rel="stylesheet" href="/static/css/vendor/bulma.min.css"> -->
+    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet"
         href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=login" />
 </head>
 
-<body>
+<body class="bg-gray-100">
     <!-- Include Navbar -->
     {% include './components/navbar.html' %}
-
     <!-- Body Page -->
-    <div class="city-section">
-        <div class="columns is-multiline">
-            <div class="column is-one-third">
-                <div class="box">
-                    <article class="media">
-                        <div class="media-content">
-                            <div class="content">
-                                <p class="title is-4"><a href="/city?city={{ city_box1 }}">{{ city_box1 }}</a></p>
-                                <p class="subtitle">Temperature: {{ temp_box1 }} ºC</p>
-                            </div>
-                        </div>
-                        <div class="media-right">
-                            <figure class="image is-48x48">
-                                <img src={{ icon_box1 }} alt="Ícone do tempo">
-                            </figure>
-                        </div>
-                    </article>
+    <main class="container mx-auto px-4 py-8">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            {% for city in cities %}
+            <div class="flex items-start gap-4 p-4 bg-white rounded-lg shadow">
+                <div class="flex-1">
+                    <h2 class="text-lg font-semibold"><a href="/city?city={{ city['cidade'] }}"><span
+                                class="hover:text-blue-600">{{ city['cidade']
+                                }}</span></a></h2>
+                    <p class="text-gray-600">Temperature: {{ city['temperatura'] }} ºC</p>
+                </div>
+                <div class="w-16 h-14 rounded flex items-center justify-center">
+                    <span class="text-gray-500"><img src={{ city['icon'] }} alt="Ícone do tempo"></span>
                 </div>
             </div>
-            <div class="column is-one-third">
-                <div class="box">
-                    <article class="media">
-                        <div class="media-content">
-                            <div class="content">
-                                <p class="title is-4"> <a href="/city?city={{ city_box2 }}">{{ city_box2 }}</a></p>
-                                <p class="subtitle">Temperature: {{ temp_box2 }} ºC</p>
-                            </div>
-                        </div>
-                        <div class="media-right">
-                            <figure class="image is-48x48">
-                                <img src={{ icon_box2 }} alt="temp_icon">
-                            </figure>
-                        </div>
-                    </article>
-                </div>
-            </div>
-            <div class="column is-one-third">
-                <div class="box">
-                    <article class="media">
-                        <div class="media-content">
-                            <div class="content">
-                                <p class="title is-4"> <a href="/city?city={{ city_box3 }}">{{ city_box3 }}</a></p>
-                                <p class="subtitle">Temperature: {{ temp_box3 }} ºC</p>
-                            </div>
-                        </div>
-                        <div class="media-right">
-                            <figure class="image is-48x48">
-                                <img src={{ icon_box3 }} alt="temp_icon">
-                            </figure>
-                        </div>
-                    </article>
-                </div>
-            </div>
+            {% endfor %}
         </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="col-span-2 bg-white p-4 rounded-lg shadow">
+                <h2 class="text-lg font-semibold mb-4">Map</h2>
+                <div class="bg-gray-100 h-[270px] rounded">
+                    <div id="map"></div>
+                </div>
+            </div>
+            
+    </main>
     </div>
 
-    
 
     <!-- Include Footer -->
     {% include './components/footer.html' %}
