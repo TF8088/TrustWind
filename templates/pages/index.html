@@ -7,7 +7,7 @@
         content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>{{ title }}</title>
-    <link rel="stylesheet" href="/static/js/script.js">
+    <!-- <link rel="stylesheet" href="/static/js/script.js"> -->
     <link rel="stylesheet" href="/static/css/style.css">
     <script src="/static/js/vendor/chart.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -44,9 +44,9 @@
                 </div>
             </div>
             <div>
-                <h3 class="text-xl font-semibold mb-4">Most searched:</h3>
+                <h3 class="text-xl font-semibold mb-4 ">Most searched:</h3>
                 {% for city in city_shearch %}
-                <div class="bg-white rounded-lg shadow-sm p-6 flex justify-between items-start mt-4">
+                <div class="bg-white rounded-lg shadow-sm p-6 flex justify-between items-start mt-4 ">
                     <div>
                         <h2 class="text-xl font-semibold">
                             <a href="/city?city={{ city['cidade'] }}">
@@ -109,19 +109,13 @@
                     (position) => {
                         const lat = position.coords.latitude;
                         const lon = position.coords.longitude;
-
-                        console.log("Localização obtida:", lat, lon);
-
                         fetchWeatherData(lat, lon);
                     },
                     (error) => {
-                        console.error("Erro ao obter localização:", error);
-
                         fetchWeatherData(defaultLat, defaultLon);
                     }
                 );
             } else {
-                console.error("Geolocalização não é suportada pelo navegador.");
                 fetchWeatherData(defaultLat, defaultLon);
             }
 
