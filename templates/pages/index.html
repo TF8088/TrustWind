@@ -9,6 +9,7 @@
     <title>{{ title }}</title>
     <link rel="stylesheet" href="/static/js/script.js">
     <link rel="stylesheet" href="/static/css/style.css">
+    <script src="/static/js/vendor/chart.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet"
         href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=login" />
@@ -49,7 +50,7 @@
                     <div>
                         <h2 class="text-xl font-semibold">
                             <a href="/city?city={{ city['cidade'] }}">
-                                <span class="hover:text-blue-600">{{ city['cidade'] }}</span>
+                                <span class="hover:text-blue-600"> • {{ city['cidade'] }}</span>
                             </a>
                         </h2>
                         <p class="text-gray-600 mt-2">Total Searches: {{ city['pesquisas'] }}</p>
@@ -58,23 +59,112 @@
                     <div class="flex items-center space-x-2">
                         {% if loop.index == 1 %}
                         <img src="/static/imgs/counter_1_24dp_E8EAED_FILL0_wght400_GRAD0_opsz24.svg" alt=""
-                            class="w-12 h-12 text-yellow-500">
+                            class="w-12 h-12">
                         {% elif loop.index == 2 %}
                         <img src="/static/imgs/counter_2_24dp_E8EAED_FILL0_wght400_GRAD0_opsz24.svg" alt=""
-                            class="w-12 h-12 text-gray-500">
+                            class="w-12 h-12">
                         {% elif loop.index == 3 %}
                         <img src="/static/imgs/counter_3_24dp_E8EAED_FILL0_wght400_GRAD0_opsz24.svg" alt=""
-                            class="w-12 h-12 text-orange-600">
+                            class="w-12 h-12">
                         {% endif %}
                     </div>
                 </div>
                 {% endfor %}
             </div>
         </div>
+
+        <div class="border-t border-gray-300 my-6"></div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+            <!-- Primeira coluna com o gráfico -->
+            <div class="bg-white p-6 rounded-lg shadow flex flex-col">
+                <h2 class="text-lg font-semibold mb-4"><span id="cityName"></span> - Analytics</h2>
+                <div class="bg-gray-100 flex-grow rounded flex items-center justify-center">
+                    <canvas id="weatherChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Segunda coluna para o outro quadrado -->
+            <div class="bg-white p-6 rounded-lg shadow flex flex-col">
+                <!-- Aqui pode estar o outro conteúdo -->
+                <h2 class="text-lg font-semibold mb-4">Other Content</h2>
+                <p>Other Content</p>
+            </div>
+        </div>
+
+
     </main>
     </div>
+
     <!-- Include Footer -->
     {% include './components/footer.html' %}
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const defaultLat = 38.736946;
+            const defaultLon = -9.142685;
+
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const lat = position.coords.latitude;
+                        const lon = position.coords.longitude;
+
+                        console.log("Localização obtida:", lat, lon);
+
+                        fetchWeatherData(lat, lon);
+                    },
+                    (error) => {
+                        console.error("Erro ao obter localização:", error);
+
+                        fetchWeatherData(defaultLat, defaultLon);
+                    }
+                );
+            } else {
+                console.error("Geolocalização não é suportada pelo navegador.");
+                fetchWeatherData(defaultLat, defaultLon);
+            }
+
+            function fetchWeatherData(lat, lon) {
+                console.log(`Buscando dados para Latitude: ${lat}, Longitude: ${lon}`);
+                fetch(`/get-weather?lat=${lat}&lon=${lon}`)
+                    .then((response) => response.json())
+                    .then((data) => {
+                        console.log("Dados do clima recebidos:", data);
+                        renderChart(data);
+                        document.getElementById("cityName").textContent = data.location.name || "Localização desconhecida";
+                    })
+                    .catch((error) => console.error("Erro ao buscar os dados:", error));
+            }
+        });
+
+        function renderChart(weatherData) {
+            const ctx = document.getElementById('weatherChart').getContext('2d');
+            const chart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Temperature (°C)', 'Humidity (%)', 'Wind Speed (km/h)'],
+                    datasets: [{
+                        label: 'Weather Data',
+                        data: [
+                            weatherData.current.temp_c,
+                            weatherData.current.humidity,
+                            weatherData.current.wind_kph
+                        ],
+                        backgroundColor: ['#4caf50', '#2196f3', '#ff9800']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+    </script>
 </body>
 
 </html>
