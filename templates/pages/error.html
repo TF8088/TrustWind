@@ -18,19 +18,19 @@
     <!-- Include Navbar -->
     {% include './components/navbar.html' %}
 
-    <body class="bg-gray-100">
+    <body class="bg-gray-100 min-h-screen flex flex-col">
         <!-- Error Section -->
-        <div class="flex items-center justify-center h-screen">
-            <div class="text-center bg-white p-8 rounded shadow-md">
-                <h1 class="text-4xl font-bold text-blue-600">{{ error }}</h1>
-                <p class="mt-4 text-gray-600">Please try again or go back to the <a href="/"
-                        class="text-blue-600 underline">homepage</a>.</p>
+        <main class="flex-grow container mx-auto px-4 flex flex-col items-center justify-center text-center">
+            <h1 class="text-6xl font-bold mb-4">{{ error['error_code'] }}</h1>
+            <p class="text-xl text-gray-600 mb-8">{{ error['error_message'] }}</p>
+            <div class="bg-gray-100 p-6 rounded-lg">
+                <p class="text-gray-700">Please try again or go back to the
+                    <a href="/"><span class="text-blue-600">homepage</span></a>.</p>
             </div>
-        </div>
+        </main>
+        
+        <!-- Include Footer -->
+        {% include './components/footer.html' %}
     </body>
-
-    <!-- Include Footer -->
-    {% include './components/footer.html' %}
-</body>
 
 </html>
