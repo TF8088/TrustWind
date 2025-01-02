@@ -2,9 +2,11 @@
 # Made by: Tiago Farinha, Gonçalo Marinho, Bernardo Melo
 # Date: 20/11/2024
 
-import logging, os, requests, sqlite3
+import logging, os, requests, sqlite3, random, string
 
-from flask import Flask, redirect, request, render_template, send_file, url_for, jsonify
+from flask import Flask, redirect, request, render_template, url_for, jsonify
+from flask_mail import Mail, Message
+from werkzeug.security import generate_password_hash
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -16,6 +18,15 @@ app = Flask(__name__, static_folder="./static")
 app.url_map.strict_slashes = False
 
 app.config['TEMPLATES_AUTO_RELOAD'] = True
+
+app.config['MAIL_SERVER']=os.getenv('MAIL_SERVER')
+app.config['MAIL_PORT'] = os.getenv('MAIL_PORT')
+app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
+app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USE_SSL'] = False
+
+mail = Mail(app)
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -34,7 +45,6 @@ def get_db_connection():
     connection.row_factory = sqlite3.Row
     return connection
 
-
 def get_random_cities(num_cities):
     connection = get_db_connection()
     with connection as conn:
@@ -44,10 +54,12 @@ def get_random_cities(num_cities):
 
 def fetch_weather_data(city):
     url = f"https://api.weatherapi.com/v1/current.json?key={os.getenv('API_KEY')}&q={city}&lang=pt"
-
-    response = requests.get(url)
-
-    if response.status_code == 200:
+   
+    try:
+        response = requests.get(url)
+        
+        response.raise_for_status()
+        
         data = response.json()
 
         res = {
@@ -57,29 +69,65 @@ def fetch_weather_data(city):
         }
 
         return res
-    else:
-        return {'erro': 'Não foi possível obter os dados'}
+    except requests.exceptions.RequestException as e:
+        return redirect(url_for('error', error="003"))
+      
+def generate_verification_code():
+    return ''.join(random.choices(string.digits, k=4))
+
+def send_verification_email(email, verification_code):
+
+    verification_url = f"http://localhost/verify?email={email}&verification_code={verification_code}"
+    
+    try:
+        email_body = f"""
+        <p>Dear User,</p>
+        <p>Thank you for signing up. Please click the button below to verify your account:</p>
+        <form action="{verification_url}" method="POST" style="margin: 20px 0;">
+            <input type="hidden" name="email" value="{email}">
+            <input type="hidden" name="verification_code" value="{verification_code}">
+            <button type="submit" style="padding: 10px 20px; font-size: 16px; color: #ffffff; background-color: #007bff; text-decoration: none; border-radius: 5px; border: none; cursor: pointer;">Verify My Account</button>
+        </form>
+        <p>If the button doesn't work, please copy and paste the following link into your browser:</p>
+        <p><a href="{verification_url}">{verification_url}</a></p>
+        <p>Thank you,<br>The TrustWind Team</p>
+        """
+
+        msg = Message(
+            subject="Verify Your Account",
+            sender=os.getenv('MAIL_USERNAME'),
+            recipients=[email],
+            html=email_body
+        )
+
+        mail.send(msg)
+
+    except Exception as e:
+        print(f"Failed to send verification email: {e}")
+        return redirect(url_for('error', error="009"))
 
 @app.route("/get-weather")
 def get_weather():
     lat = request.args.get("lat")
     lon = request.args.get("lon")
-    
-    print(lat, lon)
 
     if not lat or not lon:
-        return jsonify({"error": "Latitude e longitude são obrigatórios."}), 400
+         return redirect(url_for('error', error="001"))
 
     weather_url = f"https://api.weatherapi.com/v1/current.json?key={os.getenv('API_KEY')}&q={lat},{lon}&lang=pt"
 
-    response = requests.get(weather_url)
+    try: 
+        response = requests.get(weather_url)
+        
+        response.raise_for_status()
 
-    if response.status_code == 200:
         weather_data = response.json()
+        
         return jsonify(weather_data)
-    else:
-        return jsonify({"error": "Erro ao buscar dados do clima."}), response.status_code
 
+    except requests.exceptions.RequestException as e:
+        return redirect(url_for('error', error="003"))
+    
 @app.route("/city")
 def city():
     city = request.args.get('city')
@@ -117,15 +165,97 @@ def city():
         )        
     except requests.exceptions.RequestException as e:
         return redirect(url_for('error', error="003"))
+
+@app.route("/auth")
+def auth():
+    return render_template('/pages/auth.html', title=os.getenv('TITLE'))
+
+@app.route("/register", methods=['POST'])
+def register():
+    email = request.form.get('email')
+    password = request.form.get('password')
+
+    if not email or not password:
+        return redirect(url_for('error', error="006")) 
+    
+    try:
+        connection = get_db_connection()
         
+        cursor = connection.cursor()
+
+        cursor.execute("SELECT * FROM users WHERE email = ?", (email,))
+
+        existing_user = cursor.fetchone()
+        
+        if existing_user:
+            return redirect(url_for('error', error="007"))
+        
+        password_hash = generate_password_hash(password)
+
+        verification_code = generate_verification_code()
+
+        cursor.execute("""
+            INSERT INTO users (email, password_hash, verification_code, is_verified)
+            VALUES (?, ?, ?, ?)
+        """, (email, password_hash, verification_code, False))
+            
+        connection.commit()
+
+        send_verification_email(email, verification_code)
+
+    except Exception as e:
+        return redirect(url_for('error', error="000"))
+
+    return redirect(url_for('auth'))    
+
+@app.route("/verify", methods=['GET'])
+def verify():
+    email = request.args.get('email')
+    verification_code = request.args.get('verification_code')
+    
+    print(email, verification_code)
+
+    if not email or not verification_code:
+        return redirect(url_for('error', error="003"))
+    
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor()
+
+        cursor.execute("SELECT * FROM users WHERE email = ?", (email,))
+        
+        user = cursor.fetchone()
+
+        if not user:
+            return redirect(url_for('error', error="008"))
+
+        if user['verification_code'] != verification_code:
+            return redirect(url_for('error', error="009"))
+
+        cursor.execute("UPDATE users SET is_verified = 1 WHERE email = ?", (email,))
+        connection.commit()
+
+        return render_template('/pages/verify.html', title=os.getenv('TITLE'))
+    
+    except Exception as e:
+        return redirect(url_for('error', error="000"))
+
 @app.route("/error")
 def error():
     error_code = request.args.get('error') 
 
     switcher = {
+        '000': 'An error occurred. Please try again later.',
         '001': 'You need to enter the name of a city.',
         '002': 'The city entered could not be found.',
         '003': 'Internal server error. Please try again later.',
+        '004': 'Latitude and longitude are required.',
+        '005': 'Error fetching weather data.',
+        '006': 'Email and password are required.',
+        '007': 'Email already registered.',
+        '008': 'Email not verified.',
+        '009': 'Email Incorrect password.',
+        '010': 'Email not valid.'
     }
 
     error_message = {
