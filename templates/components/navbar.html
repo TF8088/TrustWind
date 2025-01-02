@@ -1,30 +1,62 @@
 <!-- NavBar -->
 <header class="border-b bg-white">
   <nav class="container mx-auto px-4 h-[73px] flex items-center justify-between">
-    <div class="font-bold text-xl hover:text-blue-600"><a href="/">{{ title }}</a></div>
-    <div class="flex items-center gap-8">
+    <!-- Título -->
+    <div class="font-bold text-xl hover:text-blue-600">
+      <a href="/">{{ title }}</a>
+    </div>
+
+    <!-- Menu (em telas grandes) -->
+    <div class="hidden md:flex items-center gap-8">
       <a href="/" class="hover:text-blue-600">Home</a>
       <a href="/docs" class="hover:text-blue-600">Docs</a>
       <a href="/about-us" class="hover:text-blue-600">About-Us</a>
       <div class="relative">
         <input type="text" id="city-search" placeholder="City Search" class="border rounded px-4 py-2">
       </div>
-      <script>
-        const citySearchInput = document.getElementById('city-search');
-        citySearchInput.addEventListener('keydown', function(event) {
-          if (event.key === 'Enter') {
-            event.preventDefault(); 
-            const cityName = citySearchInput.value.trim(); 
-            if (cityName) {
-              window.location.href = `/city?city=${encodeURIComponent(cityName)}`;
-            } else {
-              
-            }
-          }
-        });
-      </script>
-      
       <button class="border rounded px-4 py-2 hover:bg-gray-50">Login/Register</button>
     </div>
+
+    <!-- Menu (em telas pequenas) -->
+    <div class="md:hidden flex items-center">
+      <button id="mobile-menu-button" class="text-gray-600">
+        <!-- Ícone do menu hamburguer -->
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      </button>
+    </div>
   </nav>
+
+  <!-- Menu responsivo (oculto em telas grandes) -->
+  <div id="mobile-menu" class="hidden md:hidden bg-white p-4">
+    <a href="/" class="block py-2 hover:text-blue-600">Home</a>
+    <a href="/docs" class="block py-2 hover:text-blue-600">Docs</a>
+    <a href="/about-us" class="block py-2 hover:text-blue-600">About-Us</a>
+    <div class="relative py-2">
+      <input type="text" id="city-search-mobile" placeholder="City Search" class="border rounded px-4 py-2 w-full">
+    </div>
+    <button class="border rounded px-4 py-2 hover:bg-gray-50 w-full">Login/Register</button>
+  </div>
 </header>
+
+<script>
+  const citySearchInput = document.getElementById('city-search');
+  citySearchInput.addEventListener('keydown', function (event) {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      const cityName = citySearchInput.value.trim();
+      if (cityName) {
+        window.location.href = `/city?city=${encodeURIComponent(cityName)}`;
+      }
+    }
+  });
+
+  // Funcionalidade do menu hamburguer
+  const mobileMenuButton = document.getElementById('mobile-menu-button');
+  const mobileMenu = document.getElementById('mobile-menu');
+
+  mobileMenuButton.addEventListener('click', function () {
+    mobileMenu.classList.toggle('hidden');
+  });
+</script>
