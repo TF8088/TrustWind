@@ -14,7 +14,7 @@
       <div class="relative">
         <input type="text" id="city-search" placeholder="City Search" class="border rounded px-4 py-2">
       </div>
-      <button class="border rounded px-4 py-2 hover:bg-gray-50">Login/Register</button>
+      <button class="border rounded px-4 py-2 hover:bg-gray-50" onclick="window.location.href='/auth'">Login/Register</button>
     </div>
 
     <!-- Menu (em telas pequenas) -->
@@ -36,23 +36,29 @@
     <div class="relative py-2">
       <input type="text" id="city-search-mobile" placeholder="City Search" class="border rounded px-4 py-2 w-full">
     </div>
-    <button class="border rounded px-4 py-2 hover:bg-gray-50 w-full">Login/Register</button>
+    <button class="border rounded px-4 py-2 hover:bg-gray-50 w-full" onclick="window.location.href='/auth'">
+      Login/Register
+    </button>
   </div>
 </header>
 
 <script>
-  const citySearchInput = document.getElementById('city-search');
-  citySearchInput.addEventListener('keydown', function (event) {
-    if (event.key === 'Enter') {
-      event.preventDefault();
-      const cityName = citySearchInput.value.trim();
-      if (cityName) {
-        window.location.href = `/city?city=${encodeURIComponent(cityName)}`;
+  function handleSearch(inputId) {
+    const searchInput = document.getElementById(inputId);
+    searchInput.addEventListener('keydown', function (event) {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        const cityName = searchInput.value.trim();
+        if (cityName) {
+          window.location.href = `/city?city=${encodeURIComponent(cityName)}`;
+        }
       }
-    }
-  });
+    });
+  }
 
-  // Funcionalidade do menu hamburguer
+  handleSearch('city-search');           
+  handleSearch('city-search-mobile');
+
   const mobileMenuButton = document.getElementById('mobile-menu-button');
   const mobileMenu = document.getElementById('mobile-menu');
 
