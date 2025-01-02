@@ -1,0 +1,12 @@
+body {
+    overflow-y: scroll; /* Permite rolagem vertical */
+}
+
+::-webkit-scrollbar {
+    display: none;
+}
+
+body {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
