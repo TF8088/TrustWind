@@ -1,7 +1,7 @@
 DROP TABLE IF EXISTS city_req;
 
 CREATE TABLE city_req (
-    id INT AUTO_INCREMENT PRIMARY KEY,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
     hora TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     cidade VARCHAR(100),
     ip VARCHAR(50)
@@ -10,8 +10,22 @@ CREATE TABLE city_req (
 DROP TABLE IF EXISTS cities;
 
 CREATE TABLE cities (
-  id INT AUTO_INCREMENT PRIMARY KEY,
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
   name VARCHAR(255) NOT NULL
+);
+
+DROP TABLE IF EXISTS users;
+
+CREATE TABLE users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,      -- Identificador único para cada usuário
+    email VARCHAR(255) NOT NULL UNIQUE,        -- Email do usuário, único
+    password_hash VARCHAR(255) NOT NULL,       -- Senha do usuário (armazenada como hash para segurança)
+    verification_code CHAR(4) NOT NULL,        -- Código de 4 dígitos para validação da conta
+    is_verified BOOLEAN DEFAULT FALSE,         -- Indica se a conta foi validada
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,  -- Data de criação da conta
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,  -- Data de última atualização
+    role TEXT DEFAULT 'user',                  -- Função do usuário (padrão: 'user')
+    last_login TIMESTAMP NULL                  -- Registro do último login do usuário
 );
 
 INSERT INTO cities (name) VALUES ('Lisbon');
