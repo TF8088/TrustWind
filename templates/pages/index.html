@@ -30,7 +30,7 @@
                     <p class="text-gray-600">Temperature: {{ city['temperatura'] }} ºC</p>
                 </div>
                 <div class="w-16 h-14 rounded flex items-center justify-center">
-                    <span class="text-gray-500"><img src={{ city['icon'] }} alt="Ícone do tempo"></span>
+                    <span class="text-gray-500"><img src={{ city['icon'] }} alt="Weather Icon"></span>
                 </div>
             </div>
             {% endfor %}
@@ -40,7 +40,7 @@
             <div class="col-span-2 bg-white p-4 rounded-lg shadow">
                 <h2 class="text-lg font-semibold mb-4">Map</h2>
                 <div class="bg-gray-100 h-[290px] rounded">
-                    <div id="map"></div>
+                    <div id="map" class="h-full w-full"></div>
                 </div>
             </div>
             <div>
@@ -99,6 +99,9 @@
     <!-- Include Footer -->
     {% include './components/footer.html' %}
 
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
     <script>
         document.addEventListener("DOMContentLoaded", function () {
             const defaultLat = 38.736946;
@@ -110,13 +113,16 @@
                         const lat = position.coords.latitude;
                         const lon = position.coords.longitude;
                         fetchWeatherData(lat, lon);
+                        renderMap(lat, lon);
                     },
                     (error) => {
                         fetchWeatherData(defaultLat, defaultLon);
+                        renderMap(defaultLat, defaultLon);
                     }
                 );
             } else {
                 fetchWeatherData(defaultLat, defaultLon);
+                renderMap(defaultLat, defaultLon);
             }
 
             function fetchWeatherData(lat, lon) {
@@ -130,7 +136,20 @@
                     })
                     .catch((error) => console.error("Erro ao buscar os dados:", error));
             }
+            
+            function renderMap(lat, lon) {
+
+                var map = L.map('map').setView([lat, lon], 13);
+
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                }).addTo(map);
+
+                L.marker([lat, lon]).addTo(map)
+                    .openPopup();
+            };
         });
+
 
         function renderChart(weatherData) {
             const ctx = document.getElementById('weatherChart').getContext('2d');
