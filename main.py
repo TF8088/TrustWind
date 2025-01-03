@@ -8,6 +8,7 @@ from flask import Flask, redirect, request, render_template, url_for, jsonify
 from flask_mail import Mail, Message
 from werkzeug.security import generate_password_hash
 from dotenv import load_dotenv
+from datetime import datetime
 
 load_dotenv()
 
@@ -53,7 +54,7 @@ def get_random_cities(num_cities):
         return cursor.fetchall()
 
 def fetch_weather_data(city):
-    url = f"https://api.weatherapi.com/v1/current.json?key={os.getenv('API_KEY')}&q={city}&lang=pt"
+    url = f"https://api.weatherapi.com/v1/current.json?key={os.getenv('API_KEY')}&q={city}&lang=en"
    
     try:
         response = requests.get(url)
@@ -114,7 +115,7 @@ def get_weather():
     if not lat or not lon:
          return redirect(url_for('error', error="001"))
 
-    weather_url = f"https://api.weatherapi.com/v1/current.json?key={os.getenv('API_KEY')}&q={lat},{lon}&lang=pt"
+    weather_url = f"https://api.weatherapi.com/v1/current.json?key={os.getenv('API_KEY')}&q={lat},{lon}&lang=en"
 
     try: 
         response = requests.get(weather_url)
@@ -132,11 +133,15 @@ def get_weather():
 def city():
     city = request.args.get('city')
 
+    current_time = datetime.now().strftime('%H:%M')
+
+    print(current_time)
+    
     if not city:
         return redirect(url_for('error', error="001")) 
     
-    url = f"https://api.weatherapi.com/v1/current.json?key={os.getenv('API_KEY')}&q={city}&lang=pt"
-    
+    url = f"https://api.weatherapi.com/v1/forecast.json?key={os.getenv('API_KEY')}&q={city}&lang=en"
+   
     try:
         response = requests.get(url)
 
@@ -161,7 +166,8 @@ def city():
             '/pages/city.html',
             title=os.getenv('TITLE'),
             city=city,
-            weather=data
+            weather=data,
+            current_time=current_time
         )        
     except requests.exceptions.RequestException as e:
         return redirect(url_for('error', error="003"))
