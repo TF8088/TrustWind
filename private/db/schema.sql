@@ -17,16 +17,18 @@ CREATE TABLE cities (
 DROP TABLE IF EXISTS users;
 
 CREATE TABLE users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,      -- Identificador único para cada usuário
-    email VARCHAR(255) NOT NULL UNIQUE,        -- Email do usuário, único
-    password_hash VARCHAR(255) NOT NULL,       -- Senha do usuário (armazenada como hash para segurança)
-    verification_code CHAR(4) NOT NULL,        -- Código de 4 dígitos para validação da conta
-    is_verified BOOLEAN DEFAULT FALSE,         -- Indica se a conta foi validada
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,  -- Data de criação da conta
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,  -- Data de última atualização
-    role TEXT DEFAULT 'user',                  -- Função do usuário (padrão: 'user')
-    last_login TIMESTAMP NULL                  -- Registro do último login do usuário
+    id INTEGER PRIMARY KEY AUTOINCREMENT,      
+    email VARCHAR(255) NOT NULL UNIQUE,        
+    password_hash VARCHAR(255) NOT NULL,       
+    verification_code CHAR(4) NOT NULL,        
+    is_verified BOOLEAN DEFAULT FALSE,         
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,  
+    isAdmin BOOLEAN DEFAULT FALSE              
 );
+
+INSERT INTO users (email, password_hash, verification_code, is_verified, isAdmin)
+VALUES ('root@root.root', 'scrypt:32768:8:1$cCvPYwZw8CYRrO92$4ac5f1e23d9fb028d51bb6886513b489c0bb913a2923a73d91ca00a2be659596b7a91b48f7eb1d6429e1f0a67f689b0d6e6312e1f0a52a42aafc5c84218fde0e',
+ '1234', 1, 1);
 
 INSERT INTO cities (name) VALUES ('Lisbon');
 INSERT INTO cities (name) VALUES ('Madrid');
@@ -121,7 +123,6 @@ INSERT INTO cities (name) VALUES ('Suva');
 INSERT INTO cities (name) VALUES ('Honiara');
 INSERT INTO cities (name) VALUES ('Port Vila');
 INSERT INTO cities (name) VALUES ('Apia');
-INSERT INTO cities (name) VALUES ('Nukuʻalofa');
 INSERT INTO cities (name) VALUES ('Funafuti');
 INSERT INTO cities (name) VALUES ('Palikir');
 INSERT INTO cities (name) VALUES ('Majuro');
