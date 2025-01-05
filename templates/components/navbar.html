@@ -9,13 +9,27 @@
     <!-- Menu (em telas grandes) -->
     <div class="hidden md:flex items-center gap-8">
       <a href="/" class="hover:text-blue-600">Home</a>
-      <a href="/docs" class="hover:text-blue-600">Docs</a>
-      <a href="/about-us" class="hover:text-blue-600">About-Us</a>
+      <a href="/#about-us" class="hover:text-blue-600">About Us</a>
+
+
+      <!-- Verifica se o usuário está logado -->
+      {% if user_logged_in %}
+      <a href="/user-panel" class="hover:text-blue-600"><img
+          src="./static/imgs/space_dashboard_24dp_B7B7B7_FILL0_wght400_GRAD0_opsz24.svg" alt="DashBoard Icon"></a>
       <div class="relative">
         <input type="text" id="city-search" placeholder="City Search" class="border rounded px-4 py-2">
       </div>
-      <button class="border rounded px-4 py-2 bg-blue-600 text-white" onclick="window.location.href='/auth'">Login/Register</button>
-    </div> 
+      <form action="/logout" method="POST" style="display:inline;">
+        <button type="submit" class="border rounded px-4 py-2 bg-blue-600 text-white">Logout</button>
+      </form>
+      {% else %}
+      <div class="relative">
+        <input type="text" id="city-search" placeholder="City Search" class="border rounded px-4 py-2">
+      </div>
+      <button class="border rounded px-4 py-2 bg-blue-600 text-white"
+        onclick="window.location.href='/auth'">Login/Register</button>
+      {% endif %}
+    </div>
 
     <!-- Menu (em telas pequenas) -->
     <div class="md:hidden flex items-center">
@@ -31,14 +45,25 @@
   <!-- Menu responsivo (oculto em telas grandes) -->
   <div id="mobile-menu" class="hidden md:hidden bg-white p-4">
     <a href="/" class="block py-2 hover:text-blue-600">Home</a>
-    <a href="/docs" class="block py-2 hover:text-blue-600">Docs</a>
-    <a href="/about-us" class="block py-2 hover:text-blue-600">About-Us</a>
+    <a href="/#about-us" class="block py-2 hover:text-blue-600">About Us</a>
+    <!-- Verifica se o usuário está logado -->
+    {% if user_logged_in %}
+    <a href="/user-panel" class="block py-2 hover:text-blue-600"><img
+        src="./static/imgs/space_dashboard_24dp_B7B7B7_FILL0_wght400_GRAD0_opsz24.svg" alt="DashBoard Icon"></a>
+    <div class="relative py-2">
+      <input type="text" id="city-search-mobile" placeholder="City Search" class="border rounded px-4 py-2 w-full">
+    </div>
+    <form action="/logout" method="POST" style="display:inline;">
+      <button type="submit" class="border rounded px-4 py-2 hover:bg-gray-50 w-full">Logout</button>
+    </form>
+    {% else %}
     <div class="relative py-2">
       <input type="text" id="city-search-mobile" placeholder="City Search" class="border rounded px-4 py-2 w-full">
     </div>
     <button class="border rounded px-4 py-2 hover:bg-gray-50 w-full" onclick="window.location.href='/auth'">
       Login/Register
     </button>
+    {% endif %}
   </div>
 </header>
 
@@ -56,7 +81,7 @@
     });
   }
 
-  handleSearch('city-search');           
+  handleSearch('city-search');
   handleSearch('city-search-mobile');
 
   const mobileMenuButton = document.getElementById('mobile-menu-button');
