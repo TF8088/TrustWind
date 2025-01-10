@@ -14,5 +14,7 @@ echo Activating the Python environment
 echo installing .environment
 %Directory_PythonEnv%\Scripts\pip install python-dotenv
 %Directory_PythonEnv%\Scripts\pip install requests
+%Directory_PythonEnv%\Scripts\pip install flask_mail
+
 
 pause
