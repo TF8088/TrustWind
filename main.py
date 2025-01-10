@@ -1,3 +1,7 @@
+# Trust Wind
+# Made by: Tiago Farinha, Gonçalo Marinho, Bernardo Melo
+# Date: 20/11/2024
+
 import logging, os, requests, sqlite3, random, string
 from flask import Flask, redirect, request, render_template, url_for, jsonify, session
 from flask_mail import Mail, Message
@@ -15,7 +19,6 @@ sessions_path = './private/sessions/'
 app = Flask(__name__, static_folder="./static")
 app.url_map.strict_slashes = False
 
-app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
@@ -30,7 +33,7 @@ app.config['MAIL_SERVER']=os.getenv('MAIL_SERVER')
 app.config['MAIL_PORT'] = os.getenv('MAIL_PORT')
 app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
 app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
-app.config['MAIL_USE_TLS'] = True 
+app.config['MAIL_USE_TLS'] = True
 app.config['MAIL_USE_SSL'] = False
 
 mail = Mail(app)
@@ -38,58 +41,53 @@ Session(app)
 
 logging.basicConfig(level=logging.DEBUG)
 
-def run_schemma(script_file, database_file):
-    try:
-        with sqlite3.connect(database_file) as conn:
-            with open(script_file, 'r') as script:
-                conn.cursor().executescript(script.read())
-            conn.commit()
-    except Exception as e:
-        logging.error(f"Erro ao executar o script: {e}")
+def executar_script(script_file, database_file):
+    conn = sqlite3.connect(database_file)
+    cursor = conn.cursor()
+    with open(script_file, 'r') as script:
+        cursor.executescript(script.read())
+    conn.commit()
+    conn.close()
 
-# run_schemma(schemma, db)
+# executar_script(schemma, db)
 
 def get_db_connection():
-    try:
-        connection = sqlite3.connect(db)
-        connection.row_factory = sqlite3.Row
-        return connection
-    except sqlite3.Error as e:
-        logging.error(f"Erro ao conectar ao banco de dados: {e}")
-        return None
+    connection = sqlite3.connect(db)
+    connection.row_factory = sqlite3.Row
+    return connection
 
 def get_random_cities(num_cities):
-    try:
-        connection = get_db_connection()
-        if connection:
-            cursor = connection.cursor()
-            cursor.execute("SELECT * FROM cities ORDER BY RANDOM() LIMIT ?", (num_cities,))
-            return cursor.fetchall()
-    except sqlite3.Error as e:
-        logging.error(f"Erro ao buscar cidades aleatórias: {e}")
-        return []
+    connection = get_db_connection()
+    with connection as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM cities ORDER BY RANDOM() LIMIT ?", (num_cities,))
+        return cursor.fetchall()
 
 def fetch_weather_data(city):
     url = f"https://api.weatherapi.com/v1/current.json?key={os.getenv('API_KEY')}&q={city}&lang=en"
    
     try:
         response = requests.get(url)
+        
         response.raise_for_status()
+        
         data = response.json()
 
-        return {
+        res = {
             'cidade': data['location']['name'],
             'temperatura': data['current']['temp_c'],
             'icon': data['current']['condition']['icon']
         }
+
+        return res
     except requests.exceptions.RequestException as e:
-        logging.error(f"Erro ao obter dados do clima: {e}")
-        return None
+        return redirect(url_for('error', error="003"))
       
 def generate_verification_code():
     return ''.join(random.choices(string.digits, k=4))
 
 def send_verification_email(email, verification_code):
+
     verification_url = f"http://localhost/verify?email={email}&verification_code={verification_code}"
     
     try:
@@ -105,15 +103,18 @@ def send_verification_email(email, verification_code):
         <p><a href="{verification_url}">{verification_url}</a></p>
         <p>Thank you,<br>The TrustWind Team</p>
         """
+
         msg = Message(
             subject="Verify Your Account",
             sender=os.getenv('MAIL_USERNAME'),
             recipients=[email],
             html=email_body
         )
+
         mail.send(msg)
+
     except Exception as e:
-        logging.error(f"Failed to send verification email: {e}")
+        print(f"Failed to send verification email: {e}")
         return redirect(url_for('error', error="009"))
 
 @app.route("/get-weather")
@@ -122,19 +123,20 @@ def get_weather():
     lon = request.args.get("lon")
 
     if not lat or not lon:
-        return redirect(url_for('error', error="004"))
+         return redirect(url_for('error', error="001"))
 
     weather_url = f"https://api.weatherapi.com/v1/current.json?key={os.getenv('API_KEY')}&q={lat},{lon}&lang=en"
 
-    try:
+    try: 
         response = requests.get(weather_url)
+        
         response.raise_for_status()
 
         weather_data = response.json()
+        
         return jsonify(weather_data)
 
     except requests.exceptions.RequestException as e:
-        logging.error(f"Erro ao obter dados de clima: {e}")
         return redirect(url_for('error', error="003"))
     
 @app.route("/city")
@@ -143,14 +145,18 @@ def city():
 
     current_time = datetime.now().strftime('%H:%M')
 
+    print(current_time)
+    
     if not city:
-        return redirect(url_for('error', error="001"))
+        return redirect(url_for('error', error="001")) 
     
     url = f"https://api.weatherapi.com/v1/forecast.json?key={os.getenv('API_KEY')}&q={city}&lang=en"
    
     try:
         response = requests.get(url)
+
         response.raise_for_status()
+
         data = response.json()
 
         if 'error' in data:
@@ -158,13 +164,13 @@ def city():
 
         user_ip = request.remote_addr
 
-        with get_db_connection() as connection:
-            connection.execute(
-                "INSERT INTO city_req (cidade, ip) VALUES (?, ?)",
-                (city, user_ip)
-            )
-
-        user_logged_in = 'email' in session
+        connection = get_db_connection()
+        connection.execute(
+            "INSERT INTO city_req (cidade, ip) VALUES (?, ?)",
+            (city, user_ip)
+        )
+        connection.commit()
+        connection.close()
 
         user_logged_in = session.get('is_authenticated')
 
@@ -177,7 +183,6 @@ def city():
             user_logged_in=user_logged_in
         )        
     except requests.exceptions.RequestException as e:
-        logging.error(f"Erro ao obter dados de clima para a cidade {city}: {e}")
         return redirect(url_for('error', error="003"))
 
 @app.route("/auth")
@@ -190,32 +195,34 @@ def register():
     password = request.form.get('password')
 
     if not email or not password:
-        return redirect(url_for('error', error="006"))
-
+        return redirect(url_for('error', error="006")) 
+    
     try:
         connection = get_db_connection()
-
+        
         cursor = connection.cursor()
-        cursor.execute("SELECT * FROM users WHERE email = ?", (email,))
-        existing_user = cursor.fetchone()
 
+        cursor.execute("SELECT * FROM users WHERE email = ?", (email,))
+
+        existing_user = cursor.fetchone()
+        
         if existing_user:
             return redirect(url_for('error', error="007"))
-
+        
         password_hash = generate_password_hash(password)
+
         verification_code = generate_verification_code()
 
         cursor.execute("""
             INSERT INTO users (email, password_hash, verification_code, is_verified)
             VALUES (?, ?, ?, ?)
         """, (email, password_hash, verification_code, False))
-
+            
         connection.commit()
 
         send_verification_email(email, verification_code)
 
     except Exception as e:
-        logging.error(f"Erro ao registrar user: {e}")
         return redirect(url_for('error', error="000"))
 
     return redirect(url_for('auth'))    
@@ -281,15 +288,18 @@ def logout():
 def verify():
     email = request.args.get('email')
     verification_code = request.args.get('verification_code')
+    
+    print(email, verification_code)
 
     if not email or not verification_code:
         return redirect(url_for('error', error="003"))
-
+    
     try:
         connection = get_db_connection()
         cursor = connection.cursor()
 
         cursor.execute("SELECT * FROM users WHERE email = ?", (email,))
+        
         user = cursor.fetchone()
 
         if not user:
@@ -302,56 +312,13 @@ def verify():
         connection.commit()
 
         return render_template('/pages/verify.html', title=os.getenv('TITLE'))
-
+    
     except Exception as e:
-        logging.error(f"Erro ao verificar user: {e}")
         return redirect(url_for('error', error="000"))
-
-@app.route("/login", methods=['POST'])
-def login():
-    email = request.form.get('email')
-    password = request.form.get('password')
-
-    if not email or not password:
-        return redirect(url_for('error', error="006"))
-
-    try:
-        connection = get_db_connection()
-        cursor = connection.cursor()
-
-        cursor.execute("SELECT * FROM users WHERE email = ?", (email,))
-        
-        user = cursor.fetchone()
-
-        if not user:
-            return redirect(url_for('error', error="008"))
-
-        print(f"Usuário encontrado na DB: {user}")
-
-        if not user['is_verified']:
-            return redirect(url_for('error', error="008"))
-        
-        if not check_password_hash(user['password_hash'], password):
-            return redirect(url_for('error', error="009"))
-        
-        session['email'] = user['email']
-        session['isAdmin'] = user['isAdmin']  
-        session['created_at'] = user['created_at'] 
-
-        return redirect(url_for('index')) 
-
-    except Exception as e:
-        logging.error(f"Erro ao tentar fazer login: {e}")
-        return redirect(url_for('error', error="000"))
-
-@app.route("/logout", methods=["POST"])
-def logout():
-    session.clear()
-    return redirect(url_for("index"))
 
 @app.route("/error")
 def error():
-    error_code = request.args.get('error')
+    error_code = request.args.get('error') 
 
     switcher = {
         '000': 'An error occurred. Please try again later.',
@@ -363,18 +330,16 @@ def error():
         '006': 'Email and password are required.',
         '007': 'Email already registered.',
         '008': 'Email not verified.',
-        '009': 'Incorrect email or password.',
+        '009': 'Email Incorrect password.',
         '010': 'Email not valid.'
     }
 
     error_message = {
-        'error_message': switcher.get(error_code, "Unknown error"),
+        'error_message': switcher.get(error_code),
         'error_code': error_code
     }
 
-    user_logged_in = 'email' in session
-
-    return render_template('/pages/error.html', title=os.getenv('TITLE'), error=error_message, user_logged_in=user_logged_in)
+    return render_template('/pages/error.html', title=os.getenv('TITLE'), error=error_message)
 
 @app.route("/")
 def index():
@@ -409,6 +374,6 @@ def index():
             'pesquisas': total_searches
         })
 
-    user_logged_in = 'email' in session
+    user_logged_in = session.get('is_authenticated')
 
     return render_template('/pages/index.html', title=os.getenv('TITLE'), cities=cities_data , city_shearch=top_cities, user_logged_in=user_logged_in)
