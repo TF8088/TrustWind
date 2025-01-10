@@ -4,9 +4,10 @@
 
 import logging, os, requests, sqlite3, random, string
 
-from flask import Flask, redirect, request, render_template, url_for, jsonify
+from flask import Flask, redirect, request, render_template, url_for, jsonify, session
 from flask_mail import Mail, Message
-from werkzeug.security import generate_password_hash
+from flask_session import Session
+from werkzeug.security import generate_password_hash, check_password_hash
 from dotenv import load_dotenv
 from datetime import datetime
 
@@ -14,11 +15,20 @@ load_dotenv()
 
 db = './private/db/db.db'
 schemma = './private/db/schema.sql'
+sessions_path = './private/sessions/'
 
 app = Flask(__name__, static_folder="./static")
 app.url_map.strict_slashes = False
 
 app.config['TEMPLATES_AUTO_RELOAD'] = True
+
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
+app.config['SESSION_TYPE'] = 'filesystem'  
+app.config['SESSION_FILE_DIR'] = sessions_path 
+app.config['SESSION_PERMANENT'] = False  
+app.config['SESSION_USE_SIGNER'] = True  
+app.config['SESSION_FILE_THRESHOLD'] = 5  
+app.config['PERMANENT_SESSION_LIFETIME'] = 300
 
 app.config['MAIL_SERVER']=os.getenv('MAIL_SERVER')
 app.config['MAIL_PORT'] = os.getenv('MAIL_PORT')
@@ -28,6 +38,7 @@ app.config['MAIL_USE_TLS'] = True
 app.config['MAIL_USE_SSL'] = False
 
 mail = Mail(app)
+Session(app)
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -162,12 +173,15 @@ def city():
         connection.commit()
         connection.close()
 
+        user_logged_in = session.get('is_authenticated')
+
         return render_template(
             '/pages/city.html',
             title=os.getenv('TITLE'),
             city=city,
             weather=data,
-            current_time=current_time
+            current_time=current_time,
+            user_logged_in=user_logged_in
         )        
     except requests.exceptions.RequestException as e:
         return redirect(url_for('error', error="003"))
@@ -213,6 +227,63 @@ def register():
         return redirect(url_for('error', error="000"))
 
     return redirect(url_for('auth'))    
+
+@app.route('/login', methods=['POST'])
+def login():
+    email = request.form.get('email')
+    password = request.form.get('password')
+
+    if not email or not password:
+        logging.error("Erro ao realizar login: email ou senha não fornecidos")
+        return redirect(url_for('error', error="006"))  # Email e senha obrigatórios
+
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor()
+
+        cursor.execute("SELECT * FROM users WHERE email = ?", (email,))
+        user = cursor.fetchone()
+       
+        if not user:
+            logging.error("Erro ao realizar login: usuário não encontrado")
+            return redirect(url_for('error', error="008"))  # Usuário não encontrado
+
+        # Verifica se a senha está correta
+        if not check_password_hash(user['password_hash'], password):
+            logging.error("Erro ao realizar login: senha incorreta")
+            return redirect(url_for('error', error="009"))  # Senha incorreta
+
+        # Verifica se o email foi verificado
+        if not user['is_verified']:
+            logging.error("Erro ao realizar login: email não verificado")
+            return redirect(url_for('error', error="008"))  # Email não verificado
+
+        session['user_id'] = user['email']
+        session['isAdmin'] = user['isAdmin']
+        session['is_authenticated'] = True
+
+        logging.info(f"User {email} logado com sucesso")
+        return redirect(url_for('index'))  # Redireciona para a página inicial após o login
+
+    except Exception as e:
+        logging.error(f"Erro ao realizar login: {e}")
+        return redirect(url_for('error', error="000"))  # Erro genérico
+
+@app.route('/dashboard')
+def dashboard():
+    if session.get('is_authenticated') and session.get('user_id'):
+        
+
+        return render_template('/pages/dashboard.html', title=os.getenv('TITLE'), user_logged_in=True)
+    else:
+        
+        return redirect(url_for('auth'))  
+
+
+@app.route('/logout', methods=['POST'])
+def logout():
+    session.clear()
+    return redirect(url_for('auth'))
 
 @app.route("/verify", methods=['GET'])
 def verify():
@@ -304,4 +375,6 @@ def index():
             'pesquisas': total_searches
         })
 
-    return render_template('/pages/index.html', title=os.getenv('TITLE'), cities=cities_data , city_shearch=top_cities)
+    user_logged_in = session.get('is_authenticated')
+
+    return render_template('/pages/index.html', title=os.getenv('TITLE'), cities=cities_data , city_shearch=top_cities, user_logged_in=user_logged_in)
