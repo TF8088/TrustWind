@@ -3,33 +3,119 @@
 
 <head>
     <meta charset="UTF-8">
-    
+
     <meta name="viewport"
         content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    
+
     <title>{{ title }}</title>
-    
+
     <link rel="stylesheet" href="/static/css/style.css">
-    
+
     <script src="/static/js/vendor/chart.js"></script>
-    
+
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 
 <body class="bg-gray-100">
     {% include './components/navbar.html' %}
-
     <div class="flex bg-gray-100 min-h-screen">
         {% include './components/slidebar.html' %}
 
         <div class="flex-grow p-4">
-            <h1 class="text-2xl font-bold mb-4">Bem-vindo ao Dashboard</h1>
-            <p>Aqui você encontrará informações e ferramentas para gerenciar sua conta.</p>
+            <h1 class="text-2xl font-bold mb-4">Welcome to the TrustWind Dashboard</h1>
+
+            <div class="dashboard-content grid grid-cols-1 lg:grid-cols-4 gap-6">
+                <div class="lg:col-span-3 space-y-6">
+                    <div class="box p-6 bg-white rounded-lg shadow">
+                        <h3 class="text-lg font-semibold mb-4">Cities Searched</h3>
+                        <canvas id="citiesChart" class="h-60"></canvas>
+                    </div>
+                    <div class="box p-6 bg-white rounded-lg shadow">
+                        <h3 class="text-lg font-semibold mb-4">Requests Growth</h3>
+                        <canvas id="requestsChart" class="h-60"></canvas>
+                    </div>
+                    <div class="box p-6 bg-white rounded-lg shadow">
+                        <h3 class="text-lg font-semibold mb-4">Users Growth</h3>
+                        <canvas id="usersChart" class="h-60"></canvas>
+                    </div>
+                </div>
+
+                <div class="space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="box p-4 bg-white rounded-lg shadow">
+                            <h3 class="text-lg font-semibold mb-2">Users:</h3>
+                            <p>Total: {{ user_count }}</p>
+                        </div>
+                        <div class="box p-4 bg-white rounded-lg shadow">
+                            <h3 class="text-lg font-semibold mb-2">Requests:</h3>
+                            <p>Total: {{ city_req_count }}</p>
+                        </div>
+                        <div class="box p-4 bg-white rounded-lg shadow">
+                            <h3 class="text-lg font-semibold mb-2">Sessions:</h3>
+                            <p>Active: {{ active_sessions }}</p>
+                        </div>
+                    </div>
+
+                    <div class="video-container">
+                        <div class="aspect-w-16 aspect-h-9">
+                            <iframe class="w-full h-full rounded-lg shadow-md"
+                                src="https://www.youtube.com/embed/dQw4w9WgXcQ" frameborder="0" allowfullscreen>
+                            </iframe>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
     {% include './components/footer.html' %}
+
+    <script>
+
+        //labels: {{ cities|tojson }}, 
+        // data: {{ request_counts|tojson }}
+        var ctx = document.getElementById('citiesChart').getContext('2d');
+        var myChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: {{ cities | tojson }},
+                datasets: [{
+                    label: 'Contagem de Requisições',
+                    data: {{ request_counts | tojson }},
+                    backgroundColor: [
+                        'rgba(255, 99, 132, 0.2)',
+                        'rgba(54, 162, 235, 0.2)',
+                        'rgba(255, 206, 86, 0.2)',
+                        'rgba(67, 36, 150, 0.2)',
+                        'rgba(153, 102, 255, 0.2)',
+                        'rgba(230, 126, 34, 0.2)',
+                        'rgba(95, 158, 160, 0.2)',
+                        'rgba(255, 159, 64, 0.2)'
+                    ],
+                    borderColor: [
+                        'rgba(255, 99, 132, 1)',
+                        'rgba(54, 162, 235, 1)',
+                        'rgba(255, 206, 86, 1)',
+                        'rgba(67, 36, 150, 1)',
+                        'rgba(153, 102, 255, 1)',
+                        'rgba(230, 126, 34, 1)',
+                        'rgba(95, 158, 160, 1)',
+                        'rgba(255, 159, 64, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    </script>
+
 </body>
 
 </html>
