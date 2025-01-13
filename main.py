@@ -8,17 +8,19 @@ from flask_mail import Mail, Message
 from flask_session import Session
 from werkzeug.security import generate_password_hash, check_password_hash
 from dotenv import load_dotenv
-from datetime import datetime
+from datetime import datetime, timedelta
+
 
 load_dotenv()
 
 db = './private/db/db.db'
 schemma = './private/db/schema.sql'
 sessions_path = './private/sessions/'
+email_regex = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
+password_regex = r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$"
 
 app = Flask(__name__, static_folder="./static")
 app.url_map.strict_slashes = False
-
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
@@ -187,7 +189,7 @@ def city():
 
 @app.route("/auth")
 def auth():
-    return render_template('/pages/auth.html', title=os.getenv('TITLE'))
+    return render_template('/pages/auth.html', title=os.getenv('TITLE'), email_regex = email_regex, password_regex = password_regex)
 
 @app.route("/register", methods=['POST'])
 def register():
@@ -233,8 +235,7 @@ def login():
     password = request.form.get('password')
 
     if not email or not password:
-        logging.error("Erro ao realizar login: email ou senha não fornecidos")
-        return redirect(url_for('error', error="006"))  # Email e senha obrigatórios
+        return redirect(url_for('error', error="006"))
 
     try:
         connection = get_db_connection()
@@ -244,40 +245,87 @@ def login():
         user = cursor.fetchone()
        
         if not user:
-            logging.error("Erro ao realizar login: usuário não encontrado")
-            return redirect(url_for('error', error="008"))  # Usuário não encontrado
+            return redirect(url_for('error', error="008"))
 
-        # Verifica se a senha está correta
         if not check_password_hash(user['password_hash'], password):
-            logging.error("Erro ao realizar login: senha incorreta")
-            return redirect(url_for('error', error="009"))  # Senha incorreta
+            return redirect(url_for('error', error="009"))  
 
-        # Verifica se o email foi verificado
         if not user['is_verified']:
-            logging.error("Erro ao realizar login: email não verificado")
-            return redirect(url_for('error', error="008"))  # Email não verificado
+            return redirect(url_for('error', error="008"))
 
         session['user_id'] = user['email']
         session['isAdmin'] = user['isAdmin']
         session['is_authenticated'] = True
 
-        logging.info(f"User {email} logado com sucesso")
-        return redirect(url_for('index'))  # Redireciona para a página inicial após o login
+        return redirect(url_for('index'))  
 
     except Exception as e:
-        logging.error(f"Erro ao realizar login: {e}")
-        return redirect(url_for('error', error="000"))  # Erro genérico
+        return redirect(url_for('error', error="000"))
 
 @app.route('/dashboard')
 def dashboard():
     if session.get('is_authenticated') and session.get('user_id'):
-        
+        try:
+            connection = get_db_connection()
+            cursor = connection.cursor()
 
-        return render_template('/pages/dashboard.html', title=os.getenv('TITLE'), user_logged_in=True)
+            # Contagem de usuários
+            cursor.execute('SELECT COUNT(*) AS user_count FROM users')
+            user_count = cursor.fetchone()["user_count"]
+
+            # Contagem de requisições por cidades
+            cursor.execute('SELECT COUNT(*) AS city_req_count FROM city_req')
+            city_req_count = cursor.fetchone()["city_req_count"]
+
+            most_searched_cities = connection.execute(
+                """
+                SELECT cidade, COUNT(cidade) as total_searches
+                FROM city_req
+                GROUP BY cidade
+                ORDER BY total_searches ASC
+                """
+            ).fetchall()
+
+            cities = [row[0] for row in most_searched_cities]  # Nomes das cidades
+            request_counts = [row[1] for row in most_searched_cities]  # Contagem de requisições
+
+            print(cities)
+            
+            connection.close()
+
+            session_dir = app.config['SESSION_FILE_DIR']
+            session_lifetime = app.config['PERMANENT_SESSION_LIFETIME']
+            active_sessions = 0
+
+            now = datetime.now()
+
+            if os.path.exists(session_dir):
+                for session_file in os.listdir(session_dir):
+                    session_path = os.path.join(session_dir, session_file)
+                    if os.path.isfile(session_path):
+                        last_modified = datetime.fromtimestamp(os.path.getmtime(session_path))
+                        if now - last_modified <= timedelta(seconds=session_lifetime):
+                            active_sessions += 1
+
+            # Renderizar o dashboard
+            return render_template(
+                '/pages/dashboard.html',
+                title=os.getenv('TITLE'),
+                user_logged_in=True,
+                isAdmin=session.get('isAdmin'),
+                user_count=user_count,
+                city_req_count=city_req_count,
+                active_sessions=active_sessions,
+                cities=cities,
+                request_counts=request_counts
+            )
+
+        except Exception as e:
+            # Log de erro detalhado para facilitar o diagnóstico
+            logging.error(f"Erro no endpoint '/dashboard': {e}", exc_info=True)
+            return redirect(url_for('error', error="000"))
     else:
-        
-        return redirect(url_for('auth'))  
-
+        return redirect(url_for('auth'))
 
 @app.route('/logout', methods=['POST'])
 def logout():
@@ -306,7 +354,7 @@ def verify():
             return redirect(url_for('error', error="008"))
 
         if user['verification_code'] != verification_code:
-            return redirect(url_for('error', error="009"))
+            return redirect(url_for('error', error= "009"))
 
         cursor.execute("UPDATE users SET is_verified = 1 WHERE email = ?", (email,))
         connection.commit()
@@ -339,7 +387,9 @@ def error():
         'error_code': error_code
     }
 
-    return render_template('/pages/error.html', title=os.getenv('TITLE'), error=error_message)
+    user_logged_in = session.get('is_authenticated')
+
+    return render_template('/pages/error.html', title=os.getenv('TITLE'), error=error_message, user_logged_in=user_logged_in)
 
 @app.route("/")
 def index():
