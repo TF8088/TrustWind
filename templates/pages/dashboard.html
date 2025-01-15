@@ -24,7 +24,7 @@
 
         <div class="flex-grow p-4">
             <h1 class="text-2xl font-bold mb-4">Welcome to the TrustWind Dashboard</h1>
-
+            {% if isAdmin %}
             <div class="dashboard-content grid grid-cols-1 lg:grid-cols-4 gap-6">
                 <div class="lg:col-span-3 space-y-6">
                     <div class="box p-6 bg-white rounded-lg shadow">
@@ -66,15 +66,13 @@
                     </div>
                 </div>
             </div>
+            {% endif %}
         </div>
     </div>
 
     {% include './components/footer.html' %}
 
     <script>
-
-        //labels: {{ cities|tojson }}, 
-        // data: {{ request_counts|tojson }}
         var ctx = document.getElementById('citiesChart').getContext('2d');
         var myChart = new Chart(ctx, {
             type: 'bar',
