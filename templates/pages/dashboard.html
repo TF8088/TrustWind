@@ -78,40 +78,43 @@
             type: 'bar',
             data: {
                 labels: {{ cities | tojson }},
-                datasets: [{
-                    label: 'Contagem de Requisições',
-                    data: {{ request_counts | tojson }},
-                    backgroundColor: [
-                        'rgba(255, 99, 132, 0.2)',
-                        'rgba(54, 162, 235, 0.2)',
-                        'rgba(255, 206, 86, 0.2)',
-                        'rgba(67, 36, 150, 0.2)',
-                        'rgba(153, 102, 255, 0.2)',
-                        'rgba(230, 126, 34, 0.2)',
-                        'rgba(95, 158, 160, 0.2)',
-                        'rgba(255, 159, 64, 0.2)'
-                    ],
-                    borderColor: [
-                        'rgba(255, 99, 132, 1)',
-                        'rgba(54, 162, 235, 1)',
-                        'rgba(255, 206, 86, 1)',
-                        'rgba(67, 36, 150, 1)',
-                        'rgba(153, 102, 255, 1)',
-                        'rgba(230, 126, 34, 1)',
-                        'rgba(95, 158, 160, 1)',
-                        'rgba(255, 159, 64, 1)'
-                    ],
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                scales: {
-                    y: {
-                        beginAtZero: true
+        datasets: [{
+            label: 'Request Count',
+            data: {{ request_counts | tojson }},
+            backgroundColor: [
+            'rgba(255, 99, 132, 0.2)',
+            'rgba(54, 162, 235, 0.2)',
+            'rgba(255, 206, 86, 0.2)',
+            'rgba(67, 36, 150, 0.2)',
+            'rgba(153, 102, 255, 0.2)',
+            'rgba(230, 126, 34, 0.2)',
+            'rgba(95, 158, 160, 0.2)',
+            'rgba(255, 159, 64, 0.2)'
+        ],
+            borderColor: [
+            'rgba(255, 99, 132, 1)',
+            'rgba(54, 162, 235, 1)',
+            'rgba(255, 206, 86, 1)',
+            'rgba(67, 36, 150, 1)',
+            'rgba(153, 102, 255, 1)',
+            'rgba(230, 126, 34, 1)',
+            'rgba(95, 158, 160, 1)',
+            'rgba(255, 159, 64, 1)'
+        ],
+            borderWidth: 1
+        }]
+    },
+        options: {
+            scales: {
+                y: {
+                    beginAtZero: true,
+                        ticks: {
+                        stepSize: 1
                     }
                 }
             }
-        });
+        }
+});
     </script>
 
 </body>

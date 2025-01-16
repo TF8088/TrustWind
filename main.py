@@ -164,12 +164,14 @@ def city():
         if 'error' in data:
             return redirect(url_for('error', error='002'))
 
+        standardized_city = data.get('location', {}).get('name', city)
+
         user_ip = request.remote_addr
 
         connection = get_db_connection()
         connection.execute(
             "INSERT INTO city_req (cidade, ip) VALUES (?, ?)",
-            (city, user_ip)
+            (standardized_city, user_ip)
         )
         connection.commit()
         connection.close()
@@ -179,13 +181,14 @@ def city():
         return render_template(
             '/pages/city.html',
             title=os.getenv('TITLE'),
-            city=city,
+            city=standardized_city, 
             weather=data,
             current_time=current_time,
             user_logged_in=user_logged_in
         )        
     except requests.exceptions.RequestException as e:
         return redirect(url_for('error', error="003"))
+
 
 @app.route("/auth")
 def auth():
