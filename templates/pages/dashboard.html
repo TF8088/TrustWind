@@ -29,17 +29,12 @@
                 <div class="lg:col-span-3 space-y-6">
                     <div class="box p-6 bg-white rounded-lg shadow">
                         <h3 class="text-lg font-semibold mb-4">Cities Searched</h3>
-                        <canvas id="citiesChart" class="h-60"></canvas>
+                        <canvas id="citiesChart" class="h-40"></canvas>
                     </div>
                     <div class="box p-6 bg-white rounded-lg shadow">
                         <h3 class="text-lg font-semibold mb-4">Requests Growth</h3>
-                        <canvas id="requestsChart" class="h-60"></canvas>
-                    </div>
-                    <div class="box p-6 bg-white rounded-lg shadow">
-                        <h3 class="text-lg font-semibold mb-4">Users Growth</h3>
-                        <canvas id="usersChart" class="h-60"></canvas>
-                    </div>
-                </div>
+                        <canvas id="requestsChart" class="h-40"></canvas>
+                    </div>                </div>
 
                 <div class="space-y-6">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -59,9 +54,10 @@
 
                     <div class="video-container">
                         <div class="aspect-w-16 aspect-h-9">
-                            <iframe class="w-full h-full rounded-lg shadow-md"
-                                src="https://www.youtube.com/embed/dQw4w9WgXcQ" frameborder="0" allowfullscreen>
-                            </iframe>
+                            <div class="box p-6 bg-white rounded-lg shadow">
+                                <h3 class="text-lg font-semibold">Users Growth</h3>
+                                <canvas id="usersChart" class="h-40"></canvas>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -114,7 +110,93 @@
                 }
             }
         }
-});
+    });
+
+        // Gráfico de linha para Requests Growth
+        var requestsCtx = document.getElementById('requestsChart').getContext('2d');
+        var requestsChart = new Chart(requestsCtx, {
+            type: 'line',
+            data: {
+                labels: {{ dates | tojson }}, // Substitua por uma lista de datas ou períodos
+        datasets: [{
+            label: 'Requests',
+            data: {{ requests | tojson }}, // Substitua pelos dados reais
+            borderColor: 'rgba(75, 192, 192, 1)',
+            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+            tension: 0.3, // Suaviza as curvas
+            fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+                plugins: {
+                legend: {
+                    display: true
+                }
+            },
+            scales: {
+                x: {
+                    title: {
+                        display: true,
+                            text: 'Período'
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                        title: {
+                        display: true,
+                            text: 'Número de Requisições'
+                    }
+                }
+            }
+        }
+    });
+
+        // Gráfico de torta para Users Growth
+        var usersCtx = document.getElementById('usersChart').getContext('2d');
+        var usersChart = new Chart(usersCtx, {
+            type: 'pie',
+            data: {
+                labels: {{ user_categories | tojson }}, // Substitua pelas categorias de usuários
+        datasets: [{
+            data: {{ user_counts | tojson }}, // Substitua pelas contagens de usuários
+            backgroundColor: [
+            'rgba(255, 99, 132, 0.6)',
+            'rgba(54, 162, 235, 0.6)',
+            'rgba(255, 206, 86, 0.6)',
+            'rgba(75, 192, 192, 0.6)',
+            'rgba(153, 102, 255, 0.6)',
+            'rgba(255, 159, 64, 0.6)'
+        ],
+            borderColor: [
+            'rgba(255, 99, 132, 1)',
+            'rgba(54, 162, 235, 1)',
+            'rgba(255, 206, 86, 1)',
+            'rgba(75, 192, 192, 1)',
+            'rgba(153, 102, 255, 1)',
+            'rgba(255, 159, 64, 1)'
+        ],
+            borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+                plugins: {
+                legend: {
+                    position: 'top'
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.label || '';
+                            const value = context.raw || 0;
+                            return `${label}: ${value}`;
+                        }
+                    }
+                }
+            }
+        }
+    });
     </script>
 
 </body>
