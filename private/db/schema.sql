@@ -23,7 +23,8 @@ CREATE TABLE users (
     verification_code CHAR(4) NOT NULL,        
     is_verified BOOLEAN DEFAULT FALSE,         
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,  
-    isAdmin BOOLEAN DEFAULT FALSE              
+    isAdmin BOOLEAN DEFAULT FALSE,
+    profile_picture VARCHAR(255) DEFAULT '/static/imgs/default-profile.png'              
 );
 
 INSERT INTO users (email, password_hash, verification_code, is_verified, isAdmin)

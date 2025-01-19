@@ -3,13 +3,15 @@
 # Date: 20/11/2024
 
 import logging, os, requests, sqlite3, random, string
+from tkinter import Image
 from flask import Flask, redirect, request, render_template, url_for, jsonify, session
 from flask_mail import Mail, Message
 from flask_session import Session
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
-
+import os
 
 load_dotenv()
 
@@ -19,9 +21,15 @@ sessions_path = './private/sessions/'
 email_regex = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
 password_regex = r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$"
 
+UPLOAD_FOLDER = './static/uploads'
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+
+os.makedirs(os.path.abspath(UPLOAD_FOLDER), exist_ok=True)
+
 app = Flask(__name__, static_folder="./static")
 app.url_map.strict_slashes = False
 app.config['TEMPLATES_AUTO_RELOAD'] = True
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 app.config['SESSION_TYPE'] = 'filesystem'  
@@ -31,7 +39,7 @@ app.config['SESSION_USE_SIGNER'] = True
 app.config['SESSION_FILE_THRESHOLD'] = 5  
 app.config['PERMANENT_SESSION_LIFETIME'] = 300
 
-app.config['MAIL_SERVER']=os.getenv('MAIL_SERVER')
+app.config['MAIL_SERVER']= os.getenv('MAIL_SERVER')
 app.config['MAIL_PORT'] = os.getenv('MAIL_PORT')
 app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
 app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
@@ -51,7 +59,7 @@ def executar_script(script_file, database_file):
     conn.commit()
     conn.close()
 
-# executar_script(schemma, db)
+executar_script(schemma, db)
 
 def get_db_connection():
     connection = sqlite3.connect(db)
@@ -119,6 +127,26 @@ def send_verification_email(email, verification_code):
         print(f"Failed to send verification email: {e}")
         return redirect(url_for('error', error="009"))
 
+def getUser():
+    conn = get_db_connection()
+    
+    query = "SELECT * FROM users WHERE email = ?"
+    
+    cursor = conn.cursor()
+    cursor.execute(query, (session.get('email'),))
+    
+    user = cursor.fetchone()
+    
+    conn.close()
+
+    if user:
+        return user  
+    else:
+        return None  
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
 @app.route("/get-weather")
 def get_weather():
     lat = request.args.get("lat")
@@ -178,6 +206,11 @@ def city():
 
         user_logged_in = session.get('is_authenticated')
 
+        user_url = None
+
+        if user_logged_in:
+            user_url = getUser()
+
         return render_template(
             '/pages/city.html',
             title=os.getenv('TITLE'),
@@ -188,7 +221,6 @@ def city():
         )        
     except requests.exceptions.RequestException as e:
         return redirect(url_for('error', error="003"))
-
 
 @app.route("/auth")
 def auth():
@@ -232,7 +264,7 @@ def register():
 
     return redirect(url_for('auth'))    
 
-@app.route('/login', methods=['POST'])
+@app.route("/login", methods=['POST'])
 def login():
     email = request.form.get('email')
     password = request.form.get('password')
@@ -256,7 +288,7 @@ def login():
         if not user['is_verified']:
             return redirect(url_for('error', error="008"))
 
-        session['user_id'] = user['email']
+        session['email'] = user['email']
         session['isAdmin'] = user['isAdmin']
         session['is_authenticated'] = True
 
@@ -265,9 +297,9 @@ def login():
     except Exception as e:
         return redirect(url_for('error', error="000"))
 
-@app.route('/dashboard')
+@app.route("/dashboard")
 def dashboard():
-    if session.get('is_authenticated') and session.get('user_id'):
+    if session.get('is_authenticated') and session.get('email'):
         try:
             connection = get_db_connection()
             cursor = connection.cursor()
@@ -280,19 +312,50 @@ def dashboard():
             cursor.execute('SELECT COUNT(*) AS city_req_count FROM city_req')
             city_req_count = cursor.fetchone()["city_req_count"]
 
+            # Cidades mais pesquisadas
             most_searched_cities = connection.execute(
                 """
-                SELECT cidade, COUNT(cidade) as total_searches
+                SELECT cidade, COUNT(cidade) AS total_searches
                 FROM city_req
                 GROUP BY cidade
-                ORDER BY total_searches ASC
+                ORDER BY total_searches DESC
                 """
             ).fetchall()
-
             cities = [row[0] for row in most_searched_cities]  # Nomes das cidades
             request_counts = [row[1] for row in most_searched_cities]  # Contagem de requisições
 
-            print(cities)
+            # Crescimento de requisições (simulação com datas fictícias)
+            cursor.execute(
+                """
+                SELECT DATE(hora) AS request_day, COUNT(*) AS daily_count
+                FROM city_req
+                GROUP BY DATE(hora)
+                ORDER BY request_day
+                """
+            )
+            request_growth = cursor.fetchall()
+            dates = [row["request_day"] for row in request_growth]
+            requests = [row["daily_count"] for row in request_growth]
+
+            # Crescimento de usuários (simulação por categorias)
+            cursor.execute(
+                """
+                SELECT 
+                    CASE 
+                        WHEN isAdmin = 1 THEN 'Admin'
+                        ELSE 'User'
+                    END AS user_category, 
+                    COUNT(*) AS category_count
+                FROM users
+                GROUP BY user_category
+                """
+            )
+
+            user_growth = cursor.fetchall()
+            user_categories = [row["user_category"] for row in user_growth]
+            user_counts = [row["category_count"] for row in user_growth]
+
+            print(cities, request_counts, dates, requests, user_categories, user_counts)
             
             connection.close()
 
@@ -310,27 +373,82 @@ def dashboard():
                         if now - last_modified <= timedelta(seconds=session_lifetime):
                             active_sessions += 1
 
-            # Renderizar o dashboard
+            user_logged_in = session.get('is_authenticated')
+
+            if user_logged_in:
+                user = getUser()
+                user_url = user['profile_picture'] if user and user['profile_picture'] else '/static/imgs/default-profile.jpg'
+
             return render_template(
                 '/pages/dashboard.html',
                 title=os.getenv('TITLE'),
-                user_logged_in=True,
+                user_logged_in=user_logged_in,
+                user_url = user_url,
                 isAdmin=session.get('isAdmin'),
                 user_count=user_count,
                 city_req_count=city_req_count,
                 active_sessions=active_sessions,
                 cities=cities,
-                request_counts=request_counts
+                request_counts=request_counts,
+                dates=dates,
+                requests=requests,
+                user_categories=user_categories,
+                user_counts=user_counts
             )
 
         except Exception as e:
-            # Log de erro detalhado para facilitar o diagnóstico
-            logging.error(f"Erro no endpoint '/dashboard': {e}", exc_info=True)
             return redirect(url_for('error', error="000"))
     else:
         return redirect(url_for('auth'))
 
-@app.route('/logout', methods=['POST'])
+@app.route("/dashboard/profile", methods=['GET'])
+def profile_get():
+    if session.get('is_authenticated') and session.get('email'):
+        user_logged_in = session.get('is_authenticated')
+
+        if user_logged_in:
+            user = getUser()
+            user_url = user['profile_picture'] if user and user['profile_picture'] else '/static/imgs/default-profile.jpg'
+
+        return render_template(
+            '/pages/profile.html',
+            title=os.getenv('TITLE'),
+            user_logged_in=user_logged_in,
+            user_url=user_url
+        )
+    else:
+        return redirect(url_for('auth'))
+
+@app.route("/dashboard/profile", methods=['POST'])
+def profile_post():
+    if session.get('is_authenticated') and session.get('email'):
+        file = request.files['image']
+        if file and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+
+            try:
+                file.save(filepath) 
+
+                connection = get_db_connection()
+                cursor = connection.cursor()
+                cursor.execute(
+                    "UPDATE users SET profile_picture = ? WHERE email = ?",
+                    (f'/static/uploads/{filename}', session.get('email'))
+                )
+                connection.commit()
+                connection.close()
+
+                return redirect(url_for('profile_get'))
+            except Exception as e:
+                return f"Erro ao salvar a imagem: {str(e)}"
+
+        return redirect(url_for('profile_get'))
+
+    else:
+        return redirect(url_for('auth'))
+
+@app.route("/logout", methods=['POST'])
 def logout():
     session.clear()
     return redirect(url_for('auth'))
@@ -381,7 +499,7 @@ def error():
         '006': 'Email and password are required.',
         '007': 'Email already registered.',
         '008': 'Email not verified.',
-        '009': 'Email Incorrect password.',
+        '009': 'Email Or Password is Incorrect.',
         '010': 'Email not valid.'
     }
 
@@ -392,7 +510,11 @@ def error():
 
     user_logged_in = session.get('is_authenticated')
 
-    return render_template('/pages/error.html', title=os.getenv('TITLE'), error=error_message, user_logged_in=user_logged_in)
+    if user_logged_in:
+        user = getUser()  # Obtém o usuário completo
+        user_url = user['profile_picture'] if user and user['profile_picture'] else '/static/imgs/default-profile.jpg'
+
+    return render_template('/pages/error.html', title=os.getenv('TITLE'), error=error_message, user_logged_in=user_logged_in, user_url=user_url)
 
 @app.route("/")
 def index():
@@ -429,4 +551,10 @@ def index():
 
     user_logged_in = session.get('is_authenticated')
 
-    return render_template('/pages/index.html', title=os.getenv('TITLE'), cities=cities_data , city_shearch=top_cities, user_logged_in=user_logged_in)
+    user_url = None
+
+    if user_logged_in:
+        user = getUser()
+        user_url = user['profile_picture'] if user and user['profile_picture'] else '/static/imgs/default-profile.jpg'
+        
+    return render_template('/pages/index.html', title=os.getenv('TITLE'), cities=cities_data , city_shearch=top_cities, user_logged_in=user_logged_in, user_url = user_url)

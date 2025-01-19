@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>{{ title }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100 font-sans antialiased">
+    <!-- Navbar -->
+    {% include './components/navbar.html' %}
+
+    <div class="flex min-h-screen bg-gray-100">
+        <!-- Sidebar -->
+        {% include './components/slidebar.html' %}
+
+        <!-- Main Content -->
+        <div class="flex-grow p-8">
+            <div class="max-w-4xl mx-auto bg-white shadow-lg rounded-lg p-8 space-y-8">
+                <!-- Título -->
+                <div class="text-center">
+                    <h1 class="text-3xl font-bold text-gray-800">Detalhes da Conta</h1>
+                    <p class="text-sm text-gray-500">Atualize sua senha ou imagem de perfil</p>
+                </div>
+
+                <!-- Foto do Perfil -->
+                <div class="flex flex-col items-center space-y-4">
+                    <div>
+                        <img id="profileImage" src="{{ user_url }}" alt="Imagem do Perfil"
+                            class="w-28 h-28 rounded-full border-4 border-gray-300 shadow-md object-cover">
+                    </div>
+
+                    <!-- Formulário de upload de imagem -->
+                    <form action="/dashboard/profile" method="post" enctype="multipart/form-data" class="space-y-4">
+                        <div class="space-x-3">
+                            <label for="profile_picture"
+                                class="bg-blue-500 text-white px-4 py-2 rounded-lg shadow-md cursor-pointer hover:bg-blue-600 focus:ring-2 focus:ring-blue-400 focus:outline-none">
+                                Change Image
+                            </label>
+                            <input id="profile_picture" name="image" type="file" class="hidden" accept="image/*"
+                                onchange="previewImage(event)">
+                                <button type="submit"
+                                class="bg-green-500 text-white px-4 py-2 rounded-lg shadow-md cursor-pointer hover:bg-green-600 focus:ring-2 focus:ring-green-400 focus:outline-none">
+                                Save Image
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Formulário de alteração de senha -->
+                <form action="/update-password" method="post" class="space-y-6">
+                    <div>
+                        <label for="password" class="block text-sm font-medium text-gray-700">New Password</label>
+                        <input type="password" name="password" id="password"
+                            class="mt-2 block w-full border rounded-lg border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-700 p-3">
+                    </div>
+                    <div>
+                        <label for="confirm_password" class="block text-sm font-medium text-gray-700">Confirm New
+                            Password</label>
+                        <input type="password" name="confirm_password" id="confirm_password"
+                            class="mt-2 block w-full border rounded-lg border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-700 p-3">
+                    </div>
+
+                    <!-- Botão de Salvar -->
+                    <div class="text-center">
+                        <button type="submit"
+                            class="bg-green-500 hover:bg-green-600 text-white font-semibold px-6 py-3 rounded-lg shadow-md focus:ring-2 focus:ring-green-400 focus:outline-none">
+                            Save Password
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    {% include './components/footer.html' %}
+
+    <script>
+        // Função para mostrar pré-visualização da imagem
+        function previewImage(event) {
+            const file = event.target.files[0];
+            const reader = new FileReader();
+
+            reader.onload = function (e) {
+                document.getElementById('profileImage').src = e.target.result;
+            };
+
+            if (file) {
+                reader.readAsDataURL(file);
+            }
+        }
+    </script>
+</body>
+
+</html>
